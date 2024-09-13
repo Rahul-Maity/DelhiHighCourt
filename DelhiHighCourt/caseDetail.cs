@@ -5,7 +5,7 @@
     public string? Court { get; set; }
     public string? Abbr { get; set; }
     public string? CaseNo { get; set; }
-    public DateTime? Dated { get; set; } // Making DateTime nullable
+    public string? Dated { get; set; } // Making DateTime nullable
     public string? CaseName { get; set; }
     public string? Counsel { get; set; }
     public string? Overrule { get; set; }

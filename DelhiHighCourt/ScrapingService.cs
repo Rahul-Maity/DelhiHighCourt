@@ -3,15 +3,25 @@ using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
+using System.Net.Http;
+using System.IO;
+using System.Threading.Tasks;
+using System;
+using static System.Runtime.InteropServices.JavaScript.JSType;
+using System.Globalization;
+
 
 namespace DelhiHighCourt;
 
 public class ScrapingService
 {
     private readonly AppDbContext _context;
-    public ScrapingService(AppDbContext context)
-    {
 
+    private readonly HttpClient _httpClient;
+    private readonly string _pdfSavePath = @"C:\CourtDetails\DelhiCourt";
+    public ScrapingService(AppDbContext context,HttpClient httpClient)
+    {
+        _httpClient = httpClient;
         _context = context;
 
     }
@@ -26,7 +36,7 @@ public class ScrapingService
             DateTime oneMonthAgo = today.AddMonths(-1);
 
             // Format dates as DD/MM/YYYY
-            string fromDate = "01/09/2024";
+            string fromDate = "01/01/2024";
             string toDate = "12/09/2024";
 
             try
@@ -105,6 +115,13 @@ public class ScrapingService
     {
         foreach (var item in caseData)
         {
+            string rawDate = item.GetValueOrDefault("Order Date");
+            Console.WriteLine($"Raw Date: {rawDate}");
+
+
+            var orderDateStr = item.GetValueOrDefault("Order Date");
+            var formattedDate = ConvertDateFormat(orderDateStr);
+            
             // Extract and map the data to your CaseDetail entity
             var newCaseDetail = new caseDetail
             {
@@ -112,8 +129,9 @@ public class ScrapingService
                 Coram = item.GetValueOrDefault("Member Name"),
                 Petitioner = ParsePetitionerOrRespondent(item.GetValueOrDefault("Party Detail"), true),
                 Respondent = ParsePetitionerOrRespondent(item.GetValueOrDefault("Party Detail"), false),
-                Dated = (DateTime)TryParseDate(item.GetValueOrDefault("Order Date")),
-                PdfLink = item.GetValueOrDefault("Download"),
+                //Dated = (DateTime)TryParseDate(rawDate),
+                Dated = formattedDate,
+                PdfLink = string.Empty,
 
                 // Set other fields to default or null
                 Filename = null,
@@ -137,10 +155,71 @@ public class ScrapingService
                 QrLink = null
             };
 
+
+            var pdfLink = item.GetValueOrDefault("Download");
+            if (!string.IsNullOrEmpty(pdfLink))
+            {
+                // Download and get the local path of the PDF
+                var localPdfPath = await DownloadAndSavePdfAsync(pdfLink, newCaseDetail.CaseNo);
+
+                // Set the PdfLink property with the local path
+                newCaseDetail.PdfLink = localPdfPath;
+            }
+
             _context.caseDetails.Add(newCaseDetail);
         }
 
         await _context.SaveChangesAsync();
+    }
+
+    private string ConvertDateFormat(string? dateStr)
+    {
+        if (string.IsNullOrWhiteSpace(dateStr))
+            return string.Empty;
+
+        // Attempt to parse the date in MM-dd-yyyy format
+        if (DateTime.TryParseExact(dateStr, "MM-dd-yyyy",
+            CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
+        {
+            // Convert to dd-MM-yyyy format
+            return parsedDate.ToString("dd-MM-yyyy");
+        }
+
+        return string.Empty;
+    }
+
+    private async Task<string> DownloadAndSavePdfAsync(string url, string? caseNo)
+    {
+        try
+        {
+            // Ensure the directory exists
+            if (!Directory.Exists(_pdfSavePath))
+            {
+                Directory.CreateDirectory(_pdfSavePath);
+            }
+
+            // Ensure caseNo is not null and sanitize it if needed
+            var sanitizedCaseNo = string.IsNullOrWhiteSpace(caseNo) ? "DefaultName" : caseNo;
+            sanitizedCaseNo = Path.GetInvalidFileNameChars().Aggregate(sanitizedCaseNo, (current, c) => current.Replace(c.ToString(), "_"));
+
+            var filePath = Path.Combine(_pdfSavePath, $"{sanitizedCaseNo}.pdf");
+
+            var response = await _httpClient.GetAsync(url);
+            response.EnsureSuccessStatusCode();
+
+            using (var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write))
+            {
+                await response.Content.CopyToAsync(fileStream);
+            }
+
+            return filePath;
+        }
+        catch (Exception ex)
+        {
+            // Handle exceptions such as network errors or file access issues
+            Console.WriteLine($"Error downloading PDF: {ex.Message}");
+            return string.Empty;
+        }
     }
 
     private DateTime? TryParseDate(string? dateString)

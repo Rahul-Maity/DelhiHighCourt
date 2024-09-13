@@ -13,7 +13,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 
 builder.Services.AddTransient<ScrapingService>();
-
+builder.Services.AddHttpClient<ScrapingService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
