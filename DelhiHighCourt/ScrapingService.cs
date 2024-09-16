@@ -117,25 +117,35 @@ namespace DelhiHighCourt
             {
                 string rawDate = item.GetValueOrDefault("Order Date");
                 Console.WriteLine($"Raw Date: {rawDate}");
+                Console.WriteLine(item.GetValueOrDefault("Member Name"));
 
                 var orderDateStr = item.GetValueOrDefault("Order Date");
                 var formattedDate = ConvertDateFormat(orderDateStr);
+                //var memberNames = item.GetValueOrDefault("Member Name")
+                //         ?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries) // Split by commas and remove any empty entries
+                //         .Select(name => name.Trim()) // Trim any extra spaces from each name
+                //         .ToList();
+
+                var memberNames = ParseMemberNames(item.GetValueOrDefault("Member Name"));
+                var petitioner = ParsePetitionerOrRespondent(item.GetValueOrDefault("Party Detail"), true);
+                var respondent = ParsePetitionerOrRespondent(item.GetValueOrDefault("Party Detail"), false);
+                var caseName = $"{petitioner} vs {respondent}";
 
                 // Extract and map the data to your CaseDetail entity
                 var newCaseDetail = new caseDetail
                 {
                     CaseNo = item.GetValueOrDefault("Case No."),
-                    Coram = item.GetValueOrDefault("Member Name"),
-                    Petitioner = ParsePetitionerOrRespondent(item.GetValueOrDefault("Party Detail"), true),
-                    Respondent = ParsePetitionerOrRespondent(item.GetValueOrDefault("Party Detail"), false),
+                   Coram = memberNames,
+                    Petitioner = petitioner,
+                    Respondent = respondent,
                     Dated = formattedDate,
                     PdfLink = string.Empty,
 
                     // Set other fields to default or null
                     Filename = null,
-                    Court = null,
-                    Abbr = null,
-                    CaseName = null,
+                    Court = "Telecom Disputes Settlement And Appellate Tribunal",
+                    Abbr = "TDSAT",
+                    CaseName = caseName,
                     Counsel = null,
                     Overrule = null,
                     OveruleBy = null,
@@ -148,7 +158,7 @@ namespace DelhiHighCourt
                     Ssd = null,
                     Reportable = false,
                     Type = null,
-                    CoramCount = 0,
+                    CoramCount = memberNames?.Length ?? 0,
                     BlaCitation = null,
                     QrLink = null
                 };
@@ -178,6 +188,37 @@ namespace DelhiHighCourt
             {
                 await SaveBatchAsync(batch);
             }
+        }
+
+        private static string[] ParseMemberNames(string input)
+        {
+            var members = new List<string>();
+
+            foreach (var part in input.Split(','))
+            {
+                var trimmedPart = part.Trim();
+
+                // Remove everything after the last opening parenthesis
+                int openParenthesisIndex = trimmedPart.LastIndexOf('(');
+                if (openParenthesisIndex > -1)
+                {
+                    trimmedPart = trimmedPart.Substring(0, openParenthesisIndex).Trim();
+                }
+
+                // Remove titles like "MR.", "JUSTICE"
+                var words = trimmedPart.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                var filteredWords = words.SkipWhile(w => w.Equals("MR.", StringComparison.OrdinalIgnoreCase)
+                                                        || w.Equals("JUSTICE", StringComparison.OrdinalIgnoreCase))
+                                         .ToArray();
+
+                // Add cleaned member name
+                if (filteredWords.Length > 0)
+                {
+                    members.Add(string.Join(" ", filteredWords));
+                }
+            }
+
+            return members.ToArray(); // Convert List<string> to string[]
         }
 
         private async Task SaveBatchAsync(List<caseDetail> batch)

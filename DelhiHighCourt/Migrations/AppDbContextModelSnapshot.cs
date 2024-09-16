@@ -54,8 +54,8 @@ namespace DelhiHighCourt.Migrations
                     b.Property<string>("Citation")
                         .HasColumnType("text");
 
-                    b.Property<string>("Coram")
-                        .HasColumnType("text");
+                    b.Property<string[]>("Coram")
+                        .HasColumnType("text[]");
 
                     b.Property<int?>("CoramCount")
                         .HasColumnType("integer");

@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DelhiHighCourt.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20240912194043_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20240915104545_initialMigration")]
+    partial class initialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,7 +25,7 @@ namespace DelhiHighCourt.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("DelhiHighCourt.caseDetail", b =>
+            modelBuilder.Entity("caseDetail", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -34,100 +34,78 @@ namespace DelhiHighCourt.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Abbr")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("Act")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("Bench")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("BlaCitation")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("CaseName")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("CaseNo")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("CaseReferred")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("Citation")
-                        .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Coram")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<string[]>("Coram")
+                        .HasColumnType("text[]");
 
-                    b.Property<int>("CoramCount")
+                    b.Property<int?>("CoramCount")
                         .HasColumnType("integer");
 
                     b.Property<string>("Counsel")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("Court")
-                        .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<DateTime>("Dated")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<string>("Dated")
+                        .HasColumnType("text");
 
                     b.Property<string>("Filename")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("Headnotes")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("Overrule")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("OveruleBy")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("PdfLink")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("Petitioner")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("QrLink")
-                        .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<bool>("Reportable")
+                    b.Property<bool?>("Reportable")
                         .HasColumnType("boolean");
 
                     b.Property<string>("Respondent")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("Result")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("Ssd")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("Type")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.HasKey("Id");
